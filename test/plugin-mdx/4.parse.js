@@ -74,4 +74,59 @@ describe('mdx.parse', async () => {
         ])
       )
   })
+  it('extract title with styling from content', async () => {
+    await mklayout(tmpdir, [
+      [
+        './blog/article_1.md',
+        dedent`
+        # **\`Heading 1\`** 
+        Some content
+        ## Heading 2
+        `,
+      ],
+    ])
+      .then(() => normalize({ config: { target: tmpdir } }))
+      .then((plugin) => load(plugin))
+      .then((plugin) => enrich(plugin))
+      .then((plugin) => parse(plugin))
+      .then(({ documents }) =>
+      documents.should.match([
+        {
+          content_md: 'Some content\n\n## Heading 2\n',
+          data: {
+            title: '**Heading 1**',
+          },
+        },
+      ])
+      );
+    });
+    it('extract toc, even if title with styling', async () => {
+      await mklayout(tmpdir, [
+        [
+          './blog/article_1.md',
+          dedent`
+          # Heading 1
+          Some content
+          ## **\`Heading 2\`**
+        `,
+        ],
+      ])
+        .then(() => normalize({ config: { target: tmpdir } }))
+        .then((plugin) => load(plugin))
+        .then((plugin) => enrich(plugin))
+        .then((plugin) => parse(plugin))
+        .then(({ documents }) =>
+          documents.should.match([
+            {
+              toc: [
+                {
+                  title: '**Heading 2**',
+                  depth: 2,
+                  anchor: 'heading-2',
+                },
+              ],
+            },
+          ])
+        )
+    })
 })
